@@ -57,6 +57,13 @@ def read_box_size(box_file):
                 print("Error in box file on line %d.\n %s", line_num, line)
                 exit()
             else:
+                try:
+                    split_line[1] = float(split_line[1])
+                    split_line[2] = float(split_line[2])
+                    split_line[3] = float(split_line[3])
+                except ValueError as e:
+                    print("Error on reading box file, line %d, cannot convert value to float.", line_num)
+                    return 1
                 box_size.append(split_line[1:])
     return box_size
 
@@ -74,7 +81,7 @@ def clever_clustering(data_file, box_file):
 
     box_size = read_box_size(box_file)
 
-    while enumerate(line) != "":  # read until EOF
+    while line != "":  # read until EOF
         coordarray = []
         distancearray = []
         numparticles = int(line)  # read number of particles from first line
@@ -140,9 +147,8 @@ def clever_clustering(data_file, box_file):
         line = xyzinput.readline()
 
     xyzinput.close()
-    boxsizeinput.close()
 
-    print("\nTime taken: " + str(time() - start))
+    print("\nTime taken: {:.2f} seconds".format(time() - start))
 
 
 def main():
