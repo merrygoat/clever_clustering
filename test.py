@@ -8,7 +8,16 @@ def test_run_clustering():
         cc.clever_clustering("test/test.xyz", "test/test_box.txt")
         return 0
     except Exception as e:
-        print(e)
+        print("Failed test_run_clustering")
+        return 1
+
+
+def test_read_box():
+    try:
+        cc.read_box_size("test/test_box.txt")
+        return 0
+    except Exception as e:
+        print("Failed test_red_box")
         return 1
 
 
@@ -44,6 +53,7 @@ def test_cluster_size():
 
 
 def test_clustering():
+    assert test_read_box() == 0
     assert test_run_clustering() == 0
     assert test_cluster_output() == 0
     assert test_cluster_size() == 0
