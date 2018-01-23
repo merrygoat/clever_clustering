@@ -46,6 +46,21 @@ def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
     xyzoutputfile.close()
 
 
+def read_box_size(box_file):
+    box_size = []
+
+    with open(box_file, 'r') as box_size_file:
+        box_size_file.readline()  # Read in comment line to flush it
+        for line_num, line in enumerate(box_size_file):
+            split_line = line.split()
+            if len(split_line) != 4:
+                print("Error in box file on line %d.\n %s", line_num, line)
+                exit()
+            else:
+                box_size.append(split_line[1:])
+    return box_size
+
+
 def clever_clustering(data_file, box_file):
     start = time()
     # open and close output file to delete old copies.
@@ -53,23 +68,21 @@ def clever_clustering(data_file, box_file):
     xyzoutputfile.close()
 
     xyzinput = open(data_file, 'r')
-    boxsizeinput = open(box_file, 'r')
-    boxsizeinput.readline()  # Read in comment line to flush it
-    framecounter = 0
+
+    frame_number = 0
     line = xyzinput.readline()
 
-    while line != "":  # read until EOF
+    box_size = read_box_size(box_file)
+
+    while enumerate(line) != "":  # read until EOF
         coordarray = []
         distancearray = []
         numparticles = int(line)  # read number of particles from first line
         xyzinput.readline()  # read to clear out the comment line
 
-        # process box coordinates to determine boundary conditions
-        boxcoords = boxsizeinput.readline()  # read box coordinates from second line
-        boxcoords = boxcoords.split()
-        xlen = float(boxcoords[1])
-        ylen = float(boxcoords[2])
-        zlen = float(boxcoords[3])
+        xlen = box_size[frame_number][0]
+        ylen = box_size[frame_number][1]
+        zlen = box_size[frame_number][2]
 
         # read in every particle coordinate in the current xyz frame into a list
         for i in range(1, numparticles + 1):
@@ -119,9 +132,9 @@ def clever_clustering(data_file, box_file):
         numberoutputfile.close()
         printxyzoutput(maxclustersize[1], linkagearray, coordarray)
 
-        framecounter += 1
-        if framecounter % 10 == 0:
-            stdout.write('\rNumber of frames processed: ' + str(framecounter))
+        frame_number += 1
+        if frame_number % 10 == 0:
+            stdout.write('\rNumber of frames processed: ' + str(frame_number))
             stdout.flush()
 
         line = xyzinput.readline()
