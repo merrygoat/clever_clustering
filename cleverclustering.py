@@ -78,18 +78,13 @@ def plot_linkage_array(cutoff, linkage_array, numparticles):
     plt.draw()
 
 
-def get_max_cluster_size(linkagearray, numparticles, cutoff):
+def get_max_cluster_size(linkagearray, cutoff):
+    # Take a linkage array, and find the largest cluster under a certain distance cutoff.
+    cutoff_location = np.searchsorted(linkagearray[:, 2], cutoff)
+    largest_location = np.argmax(linkagearray[:cutoff_location, 3])
+    largest_cluster = linkagearray[largest_location, 3]
 
-    maxclustersize = [0, 0]  # max cluster size and location of max cluster
-
-    for i in range(0, numparticles):
-        if linkagearray[i, 3] > maxclustersize[0]:
-            maxclustersize[0] = linkagearray[i, 3]
-            maxclustersize[1] = i
-        if float(linkagearray[i, 2]) > cutoff:
-            break
-
-    return maxclustersize
+    return [largest_cluster, largest_location]
 
 
 def clever_clustering(data_file, box_file, cutoff=2.2):
@@ -97,6 +92,8 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
     # open and close output file to delete old copies.
     xyzoutputfile = open("clusteroutput.xyz", 'w')
     xyzoutputfile.close()
+    sizefile = open("clusteroutput.xyz", 'w')
+    sizefile.close()
 
     xyzinput = open(data_file, 'r')
 
@@ -137,9 +134,9 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
 
         linkagearray = linkage(distancearray)  # linkage outputs a numpy array
 
-        #plot_linkage_array(cutoff, linkagearray, numparticles)
+        # plot_linkage_array(cutoff, linkagearray, numparticles)
 
-        maxclustersize = get_max_cluster_size(linkagearray, numparticles, cutoff)
+        maxclustersize = get_max_cluster_size(linkagearray, cutoff)
 
         # Write to output files
         with open("clustersize.txt", 'a') as numberoutputfile:
