@@ -5,6 +5,10 @@ Required files:
 * An XYZ file containing the points to be clustered
 * A box file containing describing the size of the simulation box at each step in order to implement periodic boundaries
 
+Required libraries:
+* Numpy, version > 1.10.0
+* SciPy, version > 0.7
+
 ## XYZ specification
 An XYZ file has the format:
 

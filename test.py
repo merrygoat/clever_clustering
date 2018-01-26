@@ -1,6 +1,20 @@
 import cleverclustering as cc
 from os import remove
-import numpy as np
+from sys import exit
+try:
+    import numpy as np
+except ImportError:
+    print("Numpy Library was not found but is required. Install Numpy.")
+    exit()
+
+
+def test_numpy_version():
+    version = np.__version__.split(".")
+    if int(version[1]) < 10:
+        print("Installed NumPy Verison too old, must have at least Numpy 1.10. Update NumPy")
+        return 1
+    else:
+        return 0
 
 
 def test_run_clustering():
@@ -66,11 +80,12 @@ def test_get_max_cluster_size():
 
 
 def test_clustering():
+    assert test_numpy_version() == 0
     assert test_read_box() == 0
+    assert test_get_max_cluster_size() == 0
     assert test_run_clustering() == 0
     assert test_cluster_output() == 0
     assert test_cluster_size() == 0
-    assert test_get_max_cluster_size() == 0
 
 
 test_clustering()
