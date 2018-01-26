@@ -7,7 +7,7 @@ from time import time
 from math import sqrt
 from sys import argv, stdout, exit
 from scipy.cluster.hierarchy import linkage
-# import matplotlib.pyplot as plt
+import numpy as np
 
 
 def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
@@ -68,11 +68,32 @@ def read_box_size(box_file):
     return box_size
 
 
-def clever_clustering(data_file, box_file):
+def plot_linkage_array(cutoff, linkage_array, numparticles):
+    import matplotlib.pyplot as plt
+    plt.ion()
+    plt.figure()
+    plt.scatter(linkage_array[:, 2], linkage_array[:, 3], marker="o")
+    plt.plot([cutoff, cutoff], [0, numparticles])
+    plt.show()
+    plt.draw()
+
+
+def get_max_cluster_size(linkagearray, cutoff):
+    # Take a linkage array, and find the largest cluster under a certain distance cutoff.
+    cutoff_location = np.searchsorted(linkagearray[:, 2], cutoff)
+    largest_location = np.argmax(linkagearray[:cutoff_location, 3])
+    largest_cluster = linkagearray[largest_location, 3]
+
+    return [largest_cluster, largest_location]
+
+
+def clever_clustering(data_file, box_file, cutoff=2.2):
     start = time()
     # open and close output file to delete old copies.
     xyzoutputfile = open("clusteroutput.xyz", 'w')
     xyzoutputfile.close()
+    sizefile = open("clusteroutput.xyz", 'w')
+    sizefile.close()
 
     xyzinput = open(data_file, 'r')
 
@@ -113,32 +134,16 @@ def clever_clustering(data_file, box_file):
 
         linkagearray = linkage(distancearray)  # linkage outputs a numpy array
 
-        cutoff = 2.2
+        # plot_linkage_array(cutoff, linkagearray, numparticles)
 
-        # plt.ion()
-        # plt.figure()
-        # plt.scatter(linkagearray[:,2], linkagearray[:,3], marker="o")
-        # plt.plot([cutoff, cutoff], [0,numparticles])
-        # plt.show()
-        # plt.draw()
+        maxclustersize = get_max_cluster_size(linkagearray, cutoff)
 
-        # np.savetxt("yyy.link", linkagearray, fmt="%1i, %1i, %10.5f, %1i")
-
-        maxclustersize = [0, 0]  # max cluster size and location of max cluster
-
-        for i in range(0, numparticles):
-            if linkagearray[i, 3] > maxclustersize[0]:
-                maxclustersize[0] = linkagearray[i, 3]
-                maxclustersize[1] = i
-            if float(linkagearray[i, 2]) > cutoff:
-                break
-
-        numberoutputfile = open("clustersize.txt", 'a')
-        numberoutputfile.write(str(maxclustersize[0]))
-        numberoutputfile.write("\n")
-        numberoutputfile.close()
+        # Write to output files
+        with open("clustersize.txt", 'a') as numberoutputfile:
+            numberoutputfile.write(str(maxclustersize[0]) + "\n")
         printxyzoutput(maxclustersize[1], linkagearray, coordarray)
 
+        # Update user on progress
         frame_number += 1
         if frame_number % 10 == 0:
             stdout.write('\rNumber of frames processed: ' + str(frame_number))
