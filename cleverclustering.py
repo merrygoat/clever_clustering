@@ -11,6 +11,9 @@ import numpy as np
 
 
 def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
+    """ Write an xyz file where A particles are in the in the largest cluster and
+     B particles are not in the largest cluster """
+
     numparticles = len(coordarray)
     numAparticles = 0
     numBparticles = 0
@@ -26,7 +29,7 @@ def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
     clusterparticles.append(int(linkagearray[maxclusterlocation, 1]))
 
     # clusters start at zero. Clusters 0 to (numparticles-1) are individual particles. Clusters numparticles +
-    # are compund clusters
+    # are compound clusters
 
     while i < len(clusterparticles):
         if clusterparticles[i] >= numparticles:
@@ -95,65 +98,66 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
     sizefile = open("clusteroutput.xyz", 'w')
     sizefile.close()
 
-    xyzinput = open(data_file, 'r')
-
     frame_number = 0
-    line = xyzinput.readline()
-
     box_size = read_box_size(box_file)
 
-    while line != "":  # read until EOF
-        coordarray = []
-        distancearray = []
-        numparticles = int(line)  # read number of particles from first line
-        xyzinput.readline()  # read to clear out the comment line
-
-        xlen = box_size[frame_number][0]
-        ylen = box_size[frame_number][1]
-        zlen = box_size[frame_number][2]
-
-        # read in every particle coordinate in the current xyz frame into a list
-        for i in range(1, numparticles + 1):
-            line = xyzinput.readline()
-            coordarray.append(line[1:].lstrip().split("\t"))
-
-        # build a reduced distance array, taking into account PBCs
-        for i in range(0, numparticles):
-            for j in range(i + 1, numparticles):
-                distx = abs(float(coordarray[i][0]) - float(coordarray[j][0]))
-                disty = abs(float(coordarray[i][1]) - float(coordarray[j][1]))
-                distz = abs(float(coordarray[i][2]) - float(coordarray[j][2]))
-                if distx > xlen / 2:
-                    distx = xlen - distx
-                if disty > ylen / 2:
-                    disty = ylen - disty
-                if distz > zlen / 2:
-                    distz = zlen - distz
-                distxyz = sqrt(distx ** 2 + disty ** 2 + distz ** 2)
-                distancearray.append(distxyz)
-
-        linkagearray = linkage(distancearray)  # linkage outputs a numpy array
-
-        # plot_linkage_array(cutoff, linkagearray, numparticles)
-
-        maxclustersize = get_max_cluster_size(linkagearray, cutoff)
-
-        # Write to output files
-        with open("clustersize.txt", 'a') as numberoutputfile:
-            numberoutputfile.write(str(maxclustersize[0]) + "\n")
-        printxyzoutput(maxclustersize[1], linkagearray, coordarray)
-
-        # Update user on progress
-        frame_number += 1
-        if frame_number % 10 == 0:
-            stdout.write('\rNumber of frames processed: ' + str(frame_number))
-            stdout.flush()
-
+    with open(data_file, 'r') as xyzinput:
         line = xyzinput.readline()
+        while line != "":  # read until EOF
+            coordarray = []
+            distancearray = []
+            numparticles = int(line)  # read number of particles from first line
+            xyzinput.readline()  # read to clear out the comment line
 
-    xyzinput.close()
+            xlen = box_size[frame_number][0]
+            ylen = box_size[frame_number][1]
+            zlen = box_size[frame_number][2]
+
+            # read in every particle coordinate in the current xyz frame into a list
+            read_particles_from_xyz(coordarray, numparticles, xyzinput)
+
+            # build a reduced distance array, taking into account PBCs
+            for i in range(0, numparticles):
+                for j in range(i + 1, numparticles):
+                    distx = abs(float(coordarray[i][0]) - float(coordarray[j][0]))
+                    disty = abs(float(coordarray[i][1]) - float(coordarray[j][1]))
+                    distz = abs(float(coordarray[i][2]) - float(coordarray[j][2]))
+                    if distx > xlen / 2:
+                        distx = xlen - distx
+                    if disty > ylen / 2:
+                        disty = ylen - disty
+                    if distz > zlen / 2:
+                        distz = zlen - distz
+                    distxyz = distx ** 2 + disty ** 2 + distz ** 2
+                    distancearray.append(distxyz)
+
+            linkagearray = linkage(distancearray)  # linkage outputs a numpy array
+
+            # plot_linkage_array(cutoff, linkagearray, numparticles)
+
+            maxclustersize = get_max_cluster_size(linkagearray, cutoff*cutoff)
+
+            # Write to output files
+            with open("clustersize.txt", 'a') as numberoutputfile:
+                numberoutputfile.write(str(maxclustersize[0]) + "\n")
+            printxyzoutput(maxclustersize[1], linkagearray, coordarray)
+
+            # Update user on progress
+            frame_number += 1
+            if frame_number % 10 == 0:
+                stdout.write('\rNumber of frames processed: ' + str(frame_number))
+                stdout.flush()
+
+            line = xyzinput.readline()
+
 
     print("\nTime taken: {:.2f} seconds".format(time() - start))
+
+
+def read_particles_from_xyz(coordarray, numparticles, xyzinput):
+    for i in range(numparticles):
+        line = xyzinput.readline()
+        coordarray.append(line[1:].lstrip().split("\t"))
 
 
 def main():
