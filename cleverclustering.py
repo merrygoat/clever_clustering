@@ -14,8 +14,8 @@ def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
      B particles are not in the largest cluster """
 
     numparticles = len(coordarray)
-    numAparticles = 0
-    numBparticles = 0
+    num_a_particles = 0
+    num_b_particles = 0
     clusterparticles = []
     i = 0
     xyzoutputfile = open("clusteroutput.xyz", 'a')
@@ -40,10 +40,10 @@ def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
     for i in range(0, numparticles):
         if i in clusterparticles:
             xyzoutputfile.write("A ")  # write A for particles in cluster
-            numAparticles += 1
+            num_a_particles += 1
         else:
             xyzoutputfile.write("B ")  # write B for particles not in cluster
-            numBparticles += 1
+            num_b_particles += 1
         xyzoutputfile.write(str(coordarray[i][0]) + " " + str(coordarray[i][1]) + " " + str(coordarray[i][2]))
     xyzoutputfile.close()
 
@@ -63,7 +63,7 @@ def read_box_size(box_file):
                     split_line[1] = float(split_line[1])
                     split_line[2] = float(split_line[2])
                     split_line[3] = float(split_line[3])
-                except ValueError as e:
+                except ValueError:
                     print("Error on reading box file, line %d, cannot convert value to float.", line_num)
                     return 1
                 box_size.append(split_line[1:])
@@ -89,11 +89,12 @@ def get_max_cluster_size(linkagearray, cutoff):
     return [largest_cluster, largest_location]
 
 
-def write_output_files(coordarray, linkagearray, maxclustersize):
+def write_output_files(coordarray, linkagearray, maxclustersize, printxyz):
     # Write to output files
     with open("clustersize.txt", 'a') as numberoutputfile:
         numberoutputfile.write(str(maxclustersize[0]) + "\n")
-    # printxyzoutput(maxclustersize[1], linkagearray, coordarray)
+    if printxyz == 1:
+        printxyzoutput(maxclustersize[1], linkagearray, coordarray)
 
 
 def build_distance_array(coordarray, xlen, ylen, zlen):
@@ -116,7 +117,7 @@ def read_particles_from_xyz(numparticles, xyzinput):
     return np.array(coordarray)
 
 
-def clever_clustering(data_file, box_file, cutoff=2.2):
+def clever_clustering(data_file, box_file, cutoff=2.2, printxyz=0):
     start = time()
     # open and close output file to delete old copies.
     xyzoutputfile = open("clusteroutput.xyz", 'w')
@@ -130,7 +131,6 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
     with open(data_file, 'r') as xyzinput:
         line = xyzinput.readline()
         while line != "":  # read until EOF
-            coordarray = []
             numparticles = int(line)  # read number of particles from first line
             xyzinput.readline()  # read to clear out the comment line
 
@@ -149,7 +149,7 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
 
             maxclustersize = get_max_cluster_size(linkagearray, cutoff*cutoff)
 
-            write_output_files(coordarray, linkagearray, maxclustersize)
+            write_output_files(coordarray, linkagearray, maxclustersize, printxyz)
 
             # Update user on progress
             frame_number += 1

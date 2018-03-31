@@ -5,6 +5,7 @@ from sys import exit
 try:
     import numpy as np
 except ImportError:
+    np = None
     print("Numpy Library was not found but is required. Install Numpy.")
     exit()
 
@@ -20,7 +21,7 @@ def test_numpy_version():
 
 def test_run_clustering():
     try:
-        cc.clever_clustering("test/test.xyz", "test/test_box.txt")
+        cc.clever_clustering("test/test.xyz", "test/test_box.txt", printxyz=1)
         return 0
     except Exception:
         print("Failed test_run_clustering")
