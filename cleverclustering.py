@@ -120,9 +120,10 @@ def read_particles_from_xyz(numparticles, xyzinput):
 def clever_clustering(data_file, box_file, cutoff=2.2, printxyz=0):
     start = time()
     # open and close output file to delete old copies.
-    xyzoutputfile = open("clusteroutput.xyz", 'w')
-    xyzoutputfile.close()
-    sizefile = open("clusteroutput.xyz", 'w')
+    if printxyz == 1:
+        xyzoutputfile = open("clusteroutput.xyz", 'w')
+        xyzoutputfile.close()
+    sizefile = open("clustersize.txt", 'w')
     sizefile.close()
 
     frame_number = 0
