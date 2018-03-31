@@ -93,7 +93,7 @@ def write_output_files(coordarray, linkagearray, maxclustersize):
     # Write to output files
     with open("clustersize.txt", 'a') as numberoutputfile:
         numberoutputfile.write(str(maxclustersize[0]) + "\n")
-    printxyzoutput(maxclustersize[1], linkagearray, coordarray)
+    # printxyzoutput(maxclustersize[1], linkagearray, coordarray)
 
 
 def build_distance_array(coordarray, xlen, ylen, zlen):
