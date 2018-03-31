@@ -2,5 +2,5 @@
 .idea/
 .cache/
 __pycache__/
-clusteroutput.xyz
-clustersize.txt
+*.xyz
+*.txt
