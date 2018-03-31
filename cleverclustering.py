@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 # cleverclustering.py - a python script to read in XYZ data and perform hierarchical aglomerative clustering
-# Peter Crowther - November 2014
 
 from time import time
-from math import sqrt
 from sys import argv, stdout, exit
 from scipy.cluster.hierarchy import linkage
+from scipy.spatial.distance import pdist
 import numpy as np
 
 
@@ -90,6 +89,33 @@ def get_max_cluster_size(linkagearray, cutoff):
     return [largest_cluster, largest_location]
 
 
+def write_output_files(coordarray, linkagearray, maxclustersize):
+    # Write to output files
+    with open("clustersize.txt", 'a') as numberoutputfile:
+        numberoutputfile.write(str(maxclustersize[0]) + "\n")
+    printxyzoutput(maxclustersize[1], linkagearray, coordarray)
+
+
+def build_distance_array(coordarray, xlen, ylen, zlen):
+    # build a reduced distance array, taking into account PBCs
+    distx = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 0]), 0, 1))
+    disty = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 1]), 0, 1))
+    distz = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 2]), 0, 1))
+    distx[distx > (xlen / 2)] = xlen - distx[distx > (xlen / 2)]
+    disty[disty > (ylen / 2)] = ylen - disty[disty > (ylen / 2)]
+    distz[distz > (zlen / 2)] = zlen - distz[distz > (zlen / 2)]
+    distxyz = distx ** 2 + disty ** 2 + distz ** 2
+    return distxyz
+
+
+def read_particles_from_xyz(numparticles, xyzinput):
+    coordarray = []
+    for i in range(numparticles):
+        line = xyzinput.readline()
+        coordarray.append(line[1:].lstrip().split("\t"))
+    return np.array(coordarray)
+
+
 def clever_clustering(data_file, box_file, cutoff=2.2):
     start = time()
     # open and close output file to delete old copies.
@@ -105,7 +131,6 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
         line = xyzinput.readline()
         while line != "":  # read until EOF
             coordarray = []
-            distancearray = []
             numparticles = int(line)  # read number of particles from first line
             xyzinput.readline()  # read to clear out the comment line
 
@@ -114,33 +139,17 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
             zlen = box_size[frame_number][2]
 
             # read in every particle coordinate in the current xyz frame into a list
-            read_particles_from_xyz(coordarray, numparticles, xyzinput)
+            coordarray = read_particles_from_xyz(numparticles, xyzinput)
 
-            # build a reduced distance array, taking into account PBCs
-            for i in range(0, numparticles):
-                for j in range(i + 1, numparticles):
-                    distx = abs(float(coordarray[i][0]) - float(coordarray[j][0]))
-                    disty = abs(float(coordarray[i][1]) - float(coordarray[j][1]))
-                    distz = abs(float(coordarray[i][2]) - float(coordarray[j][2]))
-                    if distx > xlen / 2:
-                        distx = xlen - distx
-                    if disty > ylen / 2:
-                        disty = ylen - disty
-                    if distz > zlen / 2:
-                        distz = zlen - distz
-                    distxyz = distx ** 2 + disty ** 2 + distz ** 2
-                    distancearray.append(distxyz)
+            distxyz = build_distance_array(coordarray, xlen, ylen, zlen)
 
-            linkagearray = linkage(distancearray)  # linkage outputs a numpy array
+            linkagearray = linkage(distxyz)  # linkage outputs a numpy array
 
             # plot_linkage_array(cutoff, linkagearray, numparticles)
 
             maxclustersize = get_max_cluster_size(linkagearray, cutoff*cutoff)
 
-            # Write to output files
-            with open("clustersize.txt", 'a') as numberoutputfile:
-                numberoutputfile.write(str(maxclustersize[0]) + "\n")
-            printxyzoutput(maxclustersize[1], linkagearray, coordarray)
+            write_output_files(coordarray, linkagearray, maxclustersize)
 
             # Update user on progress
             frame_number += 1
@@ -150,14 +159,7 @@ def clever_clustering(data_file, box_file, cutoff=2.2):
 
             line = xyzinput.readline()
 
-
     print("\nTime taken: {:.2f} seconds".format(time() - start))
-
-
-def read_particles_from_xyz(coordarray, numparticles, xyzinput):
-    for i in range(numparticles):
-        line = xyzinput.readline()
-        coordarray.append(line[1:].lstrip().split("\t"))
 
 
 def main():

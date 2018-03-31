@@ -1,6 +1,7 @@
 import cleverclustering as cc
 from os import remove
 from sys import exit
+
 try:
     import numpy as np
 except ImportError:
@@ -86,6 +87,3 @@ def test_clustering():
     assert test_run_clustering() == 0
     assert test_cluster_output() == 0
     assert test_cluster_size() == 0
-
-
-test_clustering()
