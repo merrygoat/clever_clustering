@@ -9,6 +9,13 @@ Required libraries:
 * Numpy, version > 1.10.0
 * SciPy, version > 0.7
 
+## Command line arguments
+
+The command line arguments are:
+* path to the XYZ file
+* path to the box file
+* cluster cut-off distance
+
 ## XYZ specification
 An XYZ file has the format:
 
@@ -26,13 +33,20 @@ Particle_2_identifier x_coordinate y_coordinate z_coordinate\
 For this code, the comment line and particle identifier are ignored.
 
 ## Box-file specification
-The code reads in the size of the simulation box at each timestep from a box file. It uses this to calculate the periodic boundaries. The format of this file is designed to be the same as the TCC in order that the box file can be reused. The format is:
+The code reads in the size of the simulation box at each timestep from a box file. It uses this to calculate the periodic boundaries. The format of this file is designed to be the same as the TCC in order that the box file can be reused. If the system is a constant volume the format is:
+
+Comment line\
+Frame_1 x_length y_length z_length\
+
+If the volume of the system varies, one line should be given for each frame:
 
 Comment line\
 Frame_1 x_length y_length z_length\
 Frame_2 x_length y_length z_length\
+...
+Frame_X x_length y_length z_length\
 
-The comment line and frame numbers are ignored by teh code but are still required.
+The comment line and frame numbers are ignored by the code but are still required.
 
 ## Testing
 

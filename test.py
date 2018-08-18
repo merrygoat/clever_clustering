@@ -10,7 +10,7 @@ except ImportError:
     exit()
 
 
-def test_numpy_version():
+def numpy_version():
     version = np.__version__.split(".")
     if int(version[1]) < 10:
         print("Installed NumPy Verison too old, must have at least Numpy 1.10. Update NumPy")
@@ -19,16 +19,16 @@ def test_numpy_version():
         return 0
 
 
-def test_run_clustering():
+def run_clustering():
     try:
-        cc.clever_clustering("test/test.xyz", "test/test_box.txt", printxyz=1)
+        cc.clever_clustering("test/test.xyz", "test/test_box.txt", cutoff=2.2, printxyz=1)
         return 0
     except Exception:
         print("Failed test_run_clustering")
         return 1
 
 
-def test_read_box():
+def read_box():
     try:
         cc.read_box_size("test/test_box.txt")
         return 0
@@ -37,16 +37,16 @@ def test_read_box():
         return 1
 
 
-def test_cluster_output():
+def cluster_output():
     measured_clusters_file = "clusteroutput.xyz"
     known_clusters_file = "test/sample_clusteroutput.xyz"
     with open(measured_clusters_file) as tmp:
         measured_particles = int(tmp.readline())
-    measured_clusters = np.genfromtxt(measured_clusters_file, skip_header=2, max_rows=measured_particles, dtype=None, encoding=None)
+    measured_clusters = np.genfromtxt(measured_clusters_file, skip_header=2, max_rows=measured_particles, dtype=None)
 
     with open(known_clusters_file) as tmp:
         known_particles = int(tmp.readline())
-    known_clusters = np.genfromtxt(known_clusters_file, skip_header=2, max_rows=known_particles, dtype=None, encoding=None)
+    known_clusters = np.genfromtxt(known_clusters_file, skip_header=2, max_rows=known_particles, dtype=None)
 
     if np.all(measured_clusters == known_clusters):
         return_val = 0
@@ -56,7 +56,7 @@ def test_cluster_output():
     return return_val
 
 
-def test_cluster_size():
+def cluster_size():
     measured_cluster_size_file = "clustersize.txt"
     measured_cluster_size = np.loadtxt(measured_cluster_size_file)
     known_cluster_size = np.loadtxt("test/sample_clustersize.txt")
@@ -68,7 +68,7 @@ def test_cluster_size():
     return return_val
 
 
-def test_get_max_cluster_size():
+def get_max_cluster_size():
     sample_linkage = np.array(((3, 7, 0.8633, 2),
                                (4, 2, 1.1932, 4),
                                (5, 1, 3.3121, 6),
@@ -82,9 +82,9 @@ def test_get_max_cluster_size():
 
 
 def test_clustering():
-    assert test_numpy_version() == 0
-    assert test_read_box() == 0
-    assert test_get_max_cluster_size() == 0
-    assert test_run_clustering() == 0
-    assert test_cluster_output() == 0
-    assert test_cluster_size() == 0
+    assert numpy_version() == 0
+    assert read_box() == 0
+    assert get_max_cluster_size() == 0
+    assert run_clustering() == 0
+    assert cluster_output() == 0
+    assert cluster_size() == 0

@@ -14,38 +14,33 @@ def printxyzoutput(maxclusterlocation, linkagearray, coordarray):
      B particles are not in the largest cluster """
 
     numparticles = len(coordarray)
-    num_a_particles = 0
-    num_b_particles = 0
-    clusterparticles = []
-    i = 0
-    xyzoutputfile = open("clusteroutput.xyz", 'a')
-
-    xyzoutputfile.write(str(numparticles) + "\n")  # Write numparticles to first line of output
-    xyzoutputfile.write("Comment line\n")
-
     # retrieve 2 sub trees from cluster head
-    clusterparticles.append(int(linkagearray[maxclusterlocation, 0]))
-    clusterparticles.append(int(linkagearray[maxclusterlocation, 1]))
+    clusterparticles = [int(linkagearray[maxclusterlocation, 0]),
+                        int(linkagearray[maxclusterlocation, 1])]
 
-    # clusters start at zero. Clusters 0 to (numparticles-1) are individual particles. Clusters numparticles +
-    # are compound clusters
+    # Clusters are numbered starting at zero.
+    # Clusters numbered 0 to (numparticles-1) are individual particles.
+    # Clusters numbered > numparticles are compound clusters
 
-    while i < len(clusterparticles):
-        if clusterparticles[i] >= numparticles:
-            clusterline = clusterparticles[i] - numparticles
+    particle_counter = 0
+    while particle_counter < len(clusterparticles):
+        if clusterparticles[particle_counter] >= numparticles:
+            clusterline = clusterparticles[particle_counter] - numparticles
             clusterparticles.append(int(linkagearray[clusterline, 0]))
             clusterparticles.append(int(linkagearray[clusterline, 1]))
-        i += 1
+        particle_counter += 1
 
-    for i in range(0, numparticles):
-        if i in clusterparticles:
-            xyzoutputfile.write("A ")  # write A for particles in cluster
-            num_a_particles += 1
-        else:
-            xyzoutputfile.write("B ")  # write B for particles not in cluster
-            num_b_particles += 1
-        xyzoutputfile.write(str(coordarray[i][0]) + " " + str(coordarray[i][1]) + " " + str(coordarray[i][2]))
-    xyzoutputfile.close()
+    with open("clusteroutput.xyz", 'a') as xyzoutputfile:
+        xyzoutputfile.write("{}\nComment line\n".format(str(numparticles)))
+
+        for particle_id in range(numparticles):
+            if particle_id in clusterparticles:
+                xyzoutputfile.write("A ")  # write A for particles in cluster
+            else:
+                xyzoutputfile.write("B ")  # write B for particles not in cluster
+            xyzoutputfile.write("{} {} {}\n".format(str(coordarray[particle_id][0]),
+                                                    str(coordarray[particle_id][1]),
+                                                    str(coordarray[particle_id][2])))
 
 
 def read_box_size(box_file):
@@ -72,12 +67,10 @@ def read_box_size(box_file):
 
 def plot_linkage_array(cutoff, linkage_array, numparticles):
     import matplotlib.pyplot as plt
-    plt.ion()
-    plt.figure()
     plt.scatter(linkage_array[:, 2], linkage_array[:, 3], marker="o")
     plt.plot([cutoff, cutoff], [0, numparticles])
     plt.show()
-    plt.draw()
+
 
 
 def get_max_cluster_size(linkagearray, cutoff):
@@ -97,15 +90,16 @@ def write_output_files(coordarray, linkagearray, maxclustersize, printxyz):
         printxyzoutput(maxclustersize[1], linkagearray, coordarray)
 
 
-def build_distance_array(coordarray, xlen, ylen, zlen):
-    # build a reduced distance array, taking into account PBCs
-    distx = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 0]), 0, 1))
-    disty = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 1]), 0, 1))
-    distz = pdist(np.swapaxes(np.atleast_2d(coordarray[:, 2]), 0, 1))
-    distx[distx > (xlen / 2)] = xlen - distx[distx > (xlen / 2)]
-    disty[disty > (ylen / 2)] = ylen - disty[disty > (ylen / 2)]
-    distz[distz > (zlen / 2)] = zlen - distz[distz > (zlen / 2)]
-    distxyz = distx ** 2 + disty ** 2 + distz ** 2
+def build_distance_array(coordarray, box_size):
+    sqdist_wrapped = []
+    for dimension in range(3):
+        side_len = box_size[dimension]
+        sqdist = pdist(np.swapaxes(np.atleast_2d(coordarray[:, dimension]), 0, 1), metric="sqeuclidean")
+        dist_mask = sqdist > (side_len ** 2 / 2)
+        sqdist[dist_mask] = side_len - sqdist[dist_mask]
+        sqdist_wrapped.append(sqdist)
+
+    distxyz = sqdist_wrapped[0] + sqdist_wrapped[1] + sqdist_wrapped[2]
     return distxyz
 
 
@@ -113,18 +107,18 @@ def read_particles_from_xyz(numparticles, xyzinput):
     coordarray = []
     for i in range(numparticles):
         line = xyzinput.readline()
-        coordarray.append(line[1:].lstrip().split("\t"))
+        line = line[1:].lstrip().split()
+        line = [float(x) for x in line]
+        coordarray.append(line)
     return np.array(coordarray)
 
 
-def clever_clustering(data_file, box_file, cutoff=2.2, printxyz=0):
+def clever_clustering(data_file, box_file, cutoff, printxyz=0):
     start = time()
     # open and close output file to delete old copies.
-    if printxyz == 1:
-        xyzoutputfile = open("clusteroutput.xyz", 'w')
-        xyzoutputfile.close()
-    sizefile = open("clustersize.txt", 'w')
-    sizefile.close()
+    open("clusteroutput.xyz", 'w').close()
+    open("clustersize.txt", 'w').close()
+
 
     frame_number = 0
     box_size = read_box_size(box_file)
@@ -135,14 +129,13 @@ def clever_clustering(data_file, box_file, cutoff=2.2, printxyz=0):
             numparticles = int(line)  # read number of particles from first line
             xyzinput.readline()  # read to clear out the comment line
 
-            xlen = box_size[frame_number][0]
-            ylen = box_size[frame_number][1]
-            zlen = box_size[frame_number][2]
-
             # read in every particle coordinate in the current xyz frame into a list
             coordarray = read_particles_from_xyz(numparticles, xyzinput)
 
-            distxyz = build_distance_array(coordarray, xlen, ylen, zlen)
+            if len(box_size) == 1:
+                distxyz = build_distance_array(coordarray, box_size[0])
+            else:
+                distxyz = build_distance_array(coordarray, box_size[frame_number])
 
             linkagearray = linkage(distxyz)  # linkage outputs a numpy array
 
@@ -165,16 +158,17 @@ def clever_clustering(data_file, box_file, cutoff=2.2, printxyz=0):
 
 def main():
 
-    if len(argv) == 3:
+    if len(argv) == 4:
         print("Processing file " + argv[1] + "\n")
     else:
-        print("Syntax: ./cleverclustering.py filetoanalyse.xyz boxsize.txt")
+        print("Syntax: ./cleverclustering.py filetoanalyse.xyz boxsize.txt cutoff")
         exit()
 
     data_file = argv[1]
     box_file = argv[2]
+    cut_off = float(argv[3])
 
-    clever_clustering(data_file, box_file)
+    clever_clustering(data_file, box_file, cut_off)
 
 
 if __name__ == "__main__":
